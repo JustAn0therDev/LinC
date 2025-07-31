@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define ARRAY_SIZE 10
+
 typedef struct linc_result
 {
 	size_t size;
@@ -28,11 +30,16 @@ void free_linc_result(LincResult* linc_result)
 	free(linc_result);
 }
 
-#define ARRAY_SIZE 10
-// Linq Methods
+// Linq Methods - The caller is always responsible for freeing the allocated LincResult.
+// TODO: SelectMany
+// TODO: Intersect
+// TODO: OrderByDescending
+// TODO: OrderBy
+// TODO: Join
+// TODO: GroupBy
 
-// TODO: maybe its better to return a struct that contains the int pointer and a size?
-LincResult* select_linc(int* array, size_t array_size, int (*conditional_func)(int value))
+// Makes a map out of the input array
+LincResult* select_linc(int* array, const size_t array_size, int (*func)(const int value))
 {
 	LincResult* result = allocate_linc_result();
 	if (result == 0)
@@ -41,20 +48,50 @@ LincResult* select_linc(int* array, size_t array_size, int (*conditional_func)(i
 		exit(1);
 	}
 
-	result->collection = calloc(1, sizeof(int));
+	result->size = array_size;
+	result->collection = (int*)calloc(array_size, sizeof(int));
 
 	if (result->collection == 0)
 	{
-		puts("Unable to allocate memory for return array in select.");
+		puts("Unable to allocate memory for return array in select function.");
+		exit(1);
+	}
+
+	size_t collection_index = 0;
+
+	do
+	{
+		*(result->collection + (collection_index)) = func(*(array + collection_index));
+	}
+	while (++collection_index < array_size);
+
+	return result;
+}
+
+// Filters the input array.
+LincResult* where_linc(int* array, const size_t array_size, int (*predicate)(const int value)) 
+{
+	LincResult* result = allocate_linc_result();
+	if (result == 0)
+	{
+		puts("Unable to allocate memory for LincResult struct.");
 		exit(1);
 	}
 
 	size_t collection_index = 0;
 	size_t collection_size = 1;
 
+	result->collection = (int*)calloc(collection_size, sizeof(int));
+
+	if (result->collection == 0)
+	{
+		puts("Unable to allocate memory for return array in where function.");
+		exit(1);
+	}
+
 	for (size_t i = 0; i < array_size; i++)
 	{
-		if (conditional_func(*(array + i)))
+		if (predicate(*(array + i)))
 		{
 			*(result->collection + (collection_index++)) = *(array + i);
 			int* collection_tmp = realloc(result->collection, sizeof(int) * ++collection_size);
@@ -67,12 +104,19 @@ LincResult* select_linc(int* array, size_t array_size, int (*conditional_func)(i
 			result->collection = collection_tmp;
 		}
 	}
-	// this is collection_size - 1 because the increment works in a way that is ready to reallocate more memory if needed.
+
+	if ((collection_size - 1) == 0)
+	{
+		result->size = 0;
+		free(result->collection);
+		result->collection = 0;
+	}
+
 	result->size = collection_size - 1;
 	return result;
 }
 
-int filter_select(int value)
+int test_func(int value)
 {
 	return value >= 3;
 }
@@ -81,7 +125,7 @@ int main(void)
 {
 	int array[ARRAY_SIZE] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-	LincResult* result = select_linc(array, ARRAY_SIZE, filter_select);
+	LincResult* result = select_linc(array, ARRAY_SIZE, test_func);
 
 	for (size_t i = 0; i < result->size; i++)
 	{

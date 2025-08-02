@@ -5,8 +5,8 @@
 
 typedef struct linc_array
 {
+	int* array;
 	size_t size;
-	int* collection;
 } LincArray;
 
 // Allocates whatever is needed of memory for a LincArray struct. The caller should be the one to handle the freeing.
@@ -22,16 +22,16 @@ void free_linc_array(LincArray* linc_result)
 	if (linc_result == 0)
 		return;	
 
-	if (linc_result->collection != 0)
+	if (linc_result->array != 0)
 	{
-		free(linc_result->collection);
+		free(linc_result->array);
 	}
 
 	free(linc_result);
 }
 
 // Linq Methods - The caller is always responsible for freeing the allocated LincArray.
-// SelectMany - TODO
+// SelectMany - DONE
 // Intersect - TODO
 // OrderByDescending - TODO
 // OrderBy - TODO
@@ -43,10 +43,14 @@ void free_linc_array(LincArray* linc_result)
 // Distinct - TODO
 // Union - TODO
 
-// Makes a map out of the input array
-// TODO: change the parameters to accept a LincArray object
-LincArray* select_linc(int* array, const size_t array_size, int (*func)(const int value))
+// Makes a map out of the input array based on the provided function pointer.
+LincArray* select_linc(LincArray* input, int (*func)(const int value))
 {
+	if (input == 0 || func == 0)
+	{
+		return 0;
+	}
+
 	LincArray* result = allocate_linc_array();
 	if (result == 0)
 	{
@@ -54,30 +58,34 @@ LincArray* select_linc(int* array, const size_t array_size, int (*func)(const in
 		exit(1);
 	}
 
-	result->size = array_size;
-	result->collection = (int*)calloc(array_size, sizeof(int));
+	result->size = input->size;
+	result->array = (int*)calloc(result->size, sizeof(int));
 
-	if (result->collection == 0)
+	if (result->array == 0)
 	{
 		puts("Unable to allocate memory for return array in select function.");
 		exit(1);
 	}
 
-	size_t collection_index = 0;
+	size_t array_index = 0;
 
 	do
 	{
-		*(result->collection + (collection_index)) = func(*(array + collection_index));
+		*(result->array + (array_index)) = func(*(input->array + array_index));
 	}
-	while (++collection_index < array_size);
+	while (++array_index < input->size);
 
 	return result;
 }
 
-// Filters the input array.
-// TODO: change the parameters to accept a LincArray object
-LincArray* where_linc(int* array, const size_t array_size, int (*predicate)(const int value)) 
+// Filters the input array based on provided function pointer.
+LincArray* where_linc(LincArray* input, int (*predicate)(const int value)) 
 {
+	if (input == 0 || predicate == 0)
+	{
+		return 0;
+	}
+
 	LincArray* result = allocate_linc_array();
 	if (result == 0)
 	{
@@ -85,47 +93,52 @@ LincArray* where_linc(int* array, const size_t array_size, int (*predicate)(cons
 		exit(1);
 	}
 
-	size_t collection_index = 0;
-	size_t collection_size = 1;
+	size_t array_index = 0;
+	size_t array_size = 1;
 
-	result->collection = (int*)calloc(collection_size, sizeof(int));
+	result->array = (int*)calloc(array_size, sizeof(int));
 
-	if (result->collection == 0)
+	if (result->array == 0)
 	{
 		puts("Unable to allocate memory for return array in where function.");
 		exit(1);
 	}
 
-	for (size_t i = 0; i < array_size; i++)
+	for (size_t i = 0; i < input->size; i++)
 	{
-		if (predicate(*(array + i)))
+		if (predicate(*(input->array + i)))
 		{
-			*(result->collection + (collection_index++)) = *(array + i);
-			int* collection_tmp = realloc(result->collection, sizeof(int) * ++collection_size);
-			if (collection_tmp == 0)
+			*(result->array + (array_index++)) = *(input->array + i);
+			int* array_tmp = realloc(result->array, sizeof(int) * ++array_size);
+			if (array_tmp == 0)
 			{
 				puts("Unable to reallocate memory for array.");
 				exit(1);
 			}
 
-			result->collection = collection_tmp;
+			result->array = array_tmp;
 		}
 	}
 
-	if ((collection_size - 1) == 0)
+	if ((array_size - 1) == 0)
 	{
 		result->size = 0;
-		free(result->collection);
-		result->collection = 0;
+		free(result->array);
+		result->array = 0;
 	}
 
-	result->size = collection_size - 1;
+	result->size = array_size - 1;
 	return result;
 }
 
-// TODO: Change the parameter to accept an array of LincArray object
-LincArray* selectmany_linc(int** array_of_arrays, const size_t array_size, int (*func)(const int value))
+// Flattens a array of LincArray* objects into a single one using the provided function pointer.
+LincArray* selectmany_linc(LincArray** input_list, const size_t num_of_arrays, int (*func)(const int value))
 {
+	if (input_list == 0 || func == 0)
+	{
+		return 0;
+	}
+
 	LincArray* result = allocate_linc_array();
 	if (result == 0)
 	{
@@ -133,38 +146,35 @@ LincArray* selectmany_linc(int** array_of_arrays, const size_t array_size, int (
 		exit(1);
 	}
 
-	if (array_of_arrays == 0)
-	{
-		puts("There are no arrays to check.");
-		free_linc_array(result);
-		return 0;
-	}
+	result->array = 0;
+	size_t result_array_index = 0;
 
-	result->collection = 0;
-	size_t collection_index = 0;
-
-	for (size_t i = 0; i < array_size; i++)
+	for (size_t i = 0; i < num_of_arrays; i++)
 	{
 		size_t array_index = 0;
-		int* array = *(array_of_arrays + i);
-		// This should use the array size of each array in the LincArray object.
-		result->size += sizeof(array) / sizeof(array[0]);
 
-		int* collection_tmp = (int*)realloc(result->collection, result->size * sizeof(int));
+		LincArray* current = *(input_list + i);
+		if (current == 0)
+		{
+			continue;
+		}
 
-		if (collection_tmp == 0)
+		result->size += current->size;
+		int* array_tmp = (int*)realloc(result->array, result->size * sizeof(int));
+
+		if (array_tmp == 0)
 		{
 			puts("Unable to allocate memory with realloc on selectmany_linc");
 			exit(1);
 		}
 
-		result->collection = collection_tmp;
+		result->array = array_tmp;
 
 		do
 		{
-			*(result->collection + (collection_index)) = func(*(array + array_index++));
+			*(result->array + (result_array_index++)) = func(*(current->array + array_index));
 		}
-		while (++collection_index < result->size); 
+		while (++array_index < current->size); 
 	}
 
 	return result;
@@ -174,21 +184,24 @@ LincArray* selectmany_linc(int** array_of_arrays, const size_t array_size, int (
 
 int test_func(int value)
 {
-	return value >= 3;
+	return value;
 }
 
 int main(void)
 {
 	int array[ARRAY_SIZE] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-	int another_array[ARRAY_SIZE] = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+	int another_array[ARRAY_SIZE - 2] = { 10, 11, 12, 13, 14, 15, 16, 19 };
 
-	int** array_of_arrays[2] = { array, another_array };
+	LincArray array_one = { array, ARRAY_SIZE };
+	LincArray array_two = { another_array, ARRAY_SIZE - 2 };
 
-	LincArray* result = selectmany_linc(array_of_arrays, 2, test_func);
+	LincArray* input[2] = { &array_one, &array_two };
+
+	LincArray* result = selectmany_linc(input, 2, test_func);
 
 	for (size_t i = 0; i < result->size; i++)
 	{
-		printf("%i\n", result->collection[i]);
+		printf("%i\n", result->array[i]);
 	}
 
 	free_linc_array(result);

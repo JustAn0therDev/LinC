@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -16,7 +17,7 @@ LincArray* allocate_linc_array()
 	return linc_result;
 }
 
-// Frees the whole LincArray struct allocated.
+// Frees the allocated LincArray struct.
 void free_linc_array(LincArray* linc_result)
 {
 	if (linc_result == 0)
@@ -31,9 +32,6 @@ void free_linc_array(LincArray* linc_result)
 }
 
 // Linq Methods - The caller is always responsible for freeing the allocated LincArray.
-// OrderByDescending - TODO
-// OrderBy - TODO
-// Join - TODO
 // Take - TODO
 // TakeWhile - TODO
 // Skip - TODO
@@ -50,20 +48,12 @@ LincArray* select_linc(const LincArray* input, int (*func)(const int value))
 	}
 
 	LincArray* result = allocate_linc_array();
-	if (result == 0)
-	{
-		puts("Unable to allocate memory for LincArray struct.");
-		exit(1);
-	}
+	assert(result != 0);
 
 	result->size = input->size;
+	
 	result->array = (int*)calloc(result->size, sizeof(int));
-
-	if (result->array == 0)
-	{
-		puts("Unable to allocate memory for return array in select function.");
-		exit(1);
-	}
+	assert(result->array != 0);
 
 	size_t array_index = 0;
 
@@ -85,36 +75,20 @@ LincArray* where_linc(const LincArray* input, int (*predicate)(const int value))
 	}
 
 	LincArray* result = allocate_linc_array();
-	if (result == 0)
-	{
-		puts("Unable to allocate memory for LincArray struct.");
-		exit(1);
-	}
+	assert(result != 0);
 
 	size_t array_index = 0;
 	size_t array_size = 1;
-
-	result->array = (int*)calloc(array_size, sizeof(int));
-
-	if (result->array == 0)
-	{
-		puts("Unable to allocate memory for return array in where function.");
-		exit(1);
-	}
 
 	for (size_t i = 0; i < input->size; i++)
 	{
 		if (predicate(*(input->array + i)))
 		{
-			*(result->array + (array_index++)) = *(input->array + i);
 			int* array_tmp = realloc(result->array, sizeof(int) * ++array_size);
-			if (array_tmp == 0)
-			{
-				puts("Unable to reallocate memory for array.");
-				exit(1);
-			}
-
+			assert(array_tmp);
 			result->array = array_tmp;
+
+			*(result->array + (array_index++)) = *(input->array + i);
 		}
 	}
 
@@ -129,7 +103,7 @@ LincArray* where_linc(const LincArray* input, int (*predicate)(const int value))
 	return result;
 }
 
-// Flattens a array of LincArray* objects into a single one using the provided function pointer.
+// Flattens an array of LincArray* objects into a single one using the provided function pointer.
 LincArray* selectmany_linc(const LincArray** input_list, const size_t num_of_arrays, int (*func)(const int value))
 {
 	if (input_list == 0 || func == 0)
@@ -138,13 +112,8 @@ LincArray* selectmany_linc(const LincArray** input_list, const size_t num_of_arr
 	}
 
 	LincArray* result = allocate_linc_array();
-	if (result == 0)
-	{
-		puts("Unable to allocate memory for LincArray struct.");
-		exit(1);
-	}
+	assert(result != 0);
 
-	result->array = 0;
 	size_t result_array_index = 0;
 
 	for (size_t i = 0; i < num_of_arrays; i++)
@@ -152,19 +121,15 @@ LincArray* selectmany_linc(const LincArray** input_list, const size_t num_of_arr
 		size_t array_index = 0;
 
 		LincArray* current = *(input_list + i);
-		if (current == 0)
+		if (current == 0 || current->size == 0)
 		{
 			continue;
 		}
 
 		result->size += current->size;
+		
 		int* array_tmp = (int*)realloc(result->array, result->size * sizeof(int));
-
-		if (array_tmp == 0)
-		{
-			puts("Unable to allocate memory with realloc on selectmany_linc");
-			exit(1);
-		}
+		assert(array_tmp != 0);
 
 		result->array = array_tmp;
 
@@ -178,6 +143,7 @@ LincArray* selectmany_linc(const LincArray** input_list, const size_t num_of_arr
 	return result;
 }
 
+// Intersects an array with another, returning a new array containing the common elements of the two.
 LincArray* intersect_linc(const LincArray* input_one, const LincArray* input_two)
 {
 	if (input_one == 0 || input_two == 0)
@@ -186,22 +152,10 @@ LincArray* intersect_linc(const LincArray* input_one, const LincArray* input_two
 	}
 
 	LincArray* result = allocate_linc_array();
-	if (result == 0)
-	{
-		puts("Unable to allocate memory for LincArray struct.");
-		exit(1);
-	}
+	assert(result != 0);
 
 	size_t result_array_index = 0;
 	size_t result_array_size = 1;
-
-	result->array = (int*)calloc(result_array_size, sizeof(int));
-
-	if (result->array == 0)
-	{
-		puts("Unable to allocate memory for return array in intersect function.");
-		exit(1);
-	}
 
 	LincArray* biggest = 0;
 	LincArray* smallest = 0;
@@ -223,15 +177,11 @@ LincArray* intersect_linc(const LincArray* input_one, const LincArray* input_two
 	{
 		if (*(smallest->array + i) == *(biggest->array + i))
 		{
-			*(result->array + (result_array_index++)) = *(smallest->array + i);
 			int* array_tmp = realloc(result->array, sizeof(int) * ++result_array_size);
-			if (array_tmp == 0)
-			{
-				puts("Unable to reallocate memory for array.");
-				exit(1);
-			}
-
+			assert(array_tmp != 0);
 			result->array = array_tmp;
+
+			*(result->array + (result_array_index++)) = *(smallest->array + i);
 		}
 	}
 
@@ -246,11 +196,37 @@ LincArray* intersect_linc(const LincArray* input_one, const LincArray* input_two
 	return result;
 }
 
-// Temporary driver code
+// Takes the first N elements from the input array and returns it in a new array.
+LincArray* take_linc(const LincArray* input, const int amount)
+{
+	if (input == 0 || amount == 0)
+	{
+		return 0;
+	}
 
+	LincArray* result = allocate_linc_array();
+	assert(result != 0);
+
+	int i;
+
+	for (i = 0; i < amount; i++)
+	{
+		int* result_array_tmp = (int*)realloc(result->array, sizeof(int) * (i + 1));
+		assert(result_array_tmp != 0);
+		result->array = result_array_tmp;
+
+		*(result->array + i) = *(input->array + i);
+	}
+
+	result->size = i;
+
+	return result;
+}
+
+// Temporary driver code
 int test_func(int value)
 {
-	return value >= 15;
+	return value;
 }
 
 int main(void)
@@ -263,7 +239,7 @@ int main(void)
 
 	LincArray* input[2] = { &array_one, &array_two };
 
-	LincArray* result = intersect_linc(&array_one, &array_two);
+	LincArray* result = take_linc(&array_one, 3);
 
 	for (size_t i = 0; i < result->size; i++)
 	{

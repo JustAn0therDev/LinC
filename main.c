@@ -32,16 +32,13 @@ void free_linc_array(LincArray* linc_result)
 }
 
 // Linq Methods - The caller is always responsible for freeing the allocated LincArray.
-// Distinct - TODO
 // Union - TODO
 
 // Makes a map out of the input array based on the provided function pointer.
 LincArray* select_linc(const LincArray* input, int (*func)(const int value))
 {
-	if (input == 0 || func == 0)
-	{
-		return 0;
-	}
+	assert(input != 0);
+	assert(func != 0);
 
 	LincArray* result = allocate_linc_array();
 	assert(result != 0);
@@ -65,10 +62,8 @@ LincArray* select_linc(const LincArray* input, int (*func)(const int value))
 // Filters the input array based on provided function pointer.
 LincArray* where_linc(const LincArray* input, int (*predicate)(const int value)) 
 {
-	if (input == 0 || predicate == 0)
-	{
-		return 0;
-	}
+	assert(input != 0);
+	assert(predicate != 0);
 
 	LincArray* result = allocate_linc_array();
 	assert(result != 0);
@@ -102,10 +97,8 @@ LincArray* where_linc(const LincArray* input, int (*predicate)(const int value))
 // Flattens an array of LincArray* objects into a single one using the provided function pointer.
 LincArray* selectmany_linc(const LincArray** input_list, const size_t num_of_arrays, int (*func)(const int value))
 {
-	if (input_list == 0 || func == 0)
-	{
-		return 0;
-	}
+	assert(input_list != 0);
+	assert(func != 0);
 
 	LincArray* result = allocate_linc_array();
 	assert(result != 0);
@@ -142,10 +135,8 @@ LincArray* selectmany_linc(const LincArray** input_list, const size_t num_of_arr
 // Intersects an array with another, returning a new array containing the common elements of the two.
 LincArray* intersect_linc(const LincArray* input_one, const LincArray* input_two)
 {
-	if (input_one == 0 || input_two == 0)
-	{
-		return 0;
-	}
+	assert(input_one != 0);
+	assert(input_two != 0);
 
 	LincArray* result = allocate_linc_array();
 	assert(result != 0);
@@ -195,16 +186,14 @@ LincArray* intersect_linc(const LincArray* input_one, const LincArray* input_two
 // Takes the first N elements from the input array and returns it in a new array.
 LincArray* take_linc(const LincArray* input, const int amount)
 {
-	if (input == 0 || amount == 0)
-	{
-		return 0;
-	}
+	assert(input != 0);
 
 	LincArray* result = allocate_linc_array();
 	assert(result != 0);
+	result->array = 0;
 
 	int i;
-
+	
 	for (i = 0; i < amount; i++)
 	{
 		int* result_array_tmp = (int*)realloc(result->array, sizeof(int) * (i + 1));
@@ -222,10 +211,8 @@ LincArray* take_linc(const LincArray* input, const int amount)
 // Takes elements from the array while the predicate is true.
 LincArray* takewhile_linc(const LincArray* input, int(*predicate)(const int value))
 {
-	if (input == 0)
-	{
-		return 0;
-	}
+	assert(input != 0);
+	assert(predicate != 0);
 
 	LincArray* result = allocate_linc_array();
 	assert(result != 0);

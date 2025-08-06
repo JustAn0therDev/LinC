@@ -310,6 +310,44 @@ LincArray* skipwhile_linc(const LincArray* input, int(*predicate)(const int valu
 	return result;
 }
 
+// Returns a new array containing only unique elements from the input array.
+LincArray* distinct_linc(const LincArray* input)
+{
+	assert(input != 0);
+
+	LincArray* result = allocate_linc_array();
+	assert(result != 0);
+
+	int i;
+	size_t result_array_size = 0;
+
+	for (i = 0; i < input->size; i++)
+	{
+		int result_array_contains_item = 0;
+		for (int j = 0; j < result_array_size; j++)
+		{
+			if (*(result->array + j) == *(input->array + i))
+			{
+				result_array_contains_item = 1;
+				break;
+			}
+		}
+
+		if (result_array_contains_item)
+			continue;
+
+		int* result_array_tmp = (int*)realloc(result->array, sizeof(int) * (++result_array_size));
+		assert(result_array_tmp != 0);
+		result->array = result_array_tmp;
+
+		*(result->array + result_array_size - 1) = *(input->array + i);
+	}
+
+	result->size = result_array_size;
+
+	return result;
+}
+
 // Temporary driver code
 int test_func(int value)
 {
@@ -318,7 +356,7 @@ int test_func(int value)
 
 int main(void)
 {
-	int array[ARRAY_SIZE] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	int array[ARRAY_SIZE] = { 0, 1, 2, 2, 2, 5, 6, 7, 8, 9 };
 	int another_array[ARRAY_SIZE - 2] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 	LincArray array_one = { array, ARRAY_SIZE };
@@ -326,7 +364,7 @@ int main(void)
 
 	LincArray* input[2] = { &array_one, &array_two };
 
-	LincArray* result = skipwhile_linc(&array_one, test_func);
+	LincArray* result = distinct_linc(&array_one);
 
 	for (size_t i = 0; i < result->size; i++)
 	{

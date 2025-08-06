@@ -32,10 +32,6 @@ void free_linc_array(LincArray* linc_result)
 }
 
 // Linq Methods - The caller is always responsible for freeing the allocated LincArray.
-// Take - TODO
-// TakeWhile - TODO
-// Skip - TODO
-// SkipWhile - TODO
 // Distinct - TODO
 // Union - TODO
 
@@ -223,10 +219,101 @@ LincArray* take_linc(const LincArray* input, const int amount)
 	return result;
 }
 
+// Takes elements from the array while the predicate is true.
+LincArray* takewhile_linc(const LincArray* input, int(*predicate)(const int value))
+{
+	if (input == 0)
+	{
+		return 0;
+	}
+
+	LincArray* result = allocate_linc_array();
+	assert(result != 0);
+
+	int i;
+
+	for (i = 0; i < input->size; i++)
+	{
+		if (!predicate(*(input->array + i)))
+			break;
+
+		int* result_array_tmp = (int*)realloc(result->array, sizeof(int) * (i + 1));
+		assert(result_array_tmp != 0);
+		result->array = result_array_tmp;
+
+		*(result->array + i) = *(input->array + i);
+	}
+
+	result->size = i;
+
+	return result;
+}
+
+// Skips the first N elements of the array and returns the rest.
+LincArray* skip_linc(const LincArray* input, const int amount)
+{
+	assert(input != 0);
+	assert(amount != 0);
+	assert(input->size >= amount);
+
+	LincArray* result = allocate_linc_array();
+	assert(result != 0);
+
+	int i;
+	size_t result_array_size = 0;
+
+	for (i = amount; i < input->size; i++)
+	{
+		result_array_size = (size_t)(i - amount);
+		int* result_array_tmp = (int*)realloc(result->array, sizeof(int) * (result_array_size + 1));
+		assert(result_array_tmp != 0);
+		result->array = result_array_tmp;
+
+		*(result->array + result_array_size) = *(input->array + i);
+	}
+
+	result->size = result_array_size;
+
+	return result;
+}
+
+// Skips elements in the array while the predicate function is true
+LincArray* skipwhile_linc(const LincArray* input, int(*predicate)(const int value))
+{
+	assert(input != 0);
+	assert(predicate != 0);
+
+	LincArray* result = allocate_linc_array();
+	assert(result != 0);
+
+	int i;
+	size_t result_array_size = 0;
+	int predicate_is_true = 1;
+
+	for (i = 0; i < input->size; i++)
+	{
+		if (predicate_is_true)
+			predicate_is_true = !predicate(*(input->array + i));
+
+		if (!predicate_is_true)
+		{
+			int* result_array_tmp = (int*)realloc(result->array, sizeof(int) * (++result_array_size));
+			assert(result_array_tmp != 0);
+			result->array = result_array_tmp;
+
+			*(result->array + result_array_size - 1) = *(input->array + i);
+		}
+	}
+
+	result->size = result_array_size;
+
+	return result;
+}
+
 // Temporary driver code
 int test_func(int value)
 {
-	return value;
+	return value > 3;
 }
 
 int main(void)
@@ -239,7 +326,7 @@ int main(void)
 
 	LincArray* input[2] = { &array_one, &array_two };
 
-	LincArray* result = take_linc(&array_one, 3);
+	LincArray* result = skipwhile_linc(&array_one, test_func);
 
 	for (size_t i = 0; i < result->size; i++)
 	{
